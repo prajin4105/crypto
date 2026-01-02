@@ -1,0 +1,167 @@
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+    background-color: #0b0f1a;
+    color: #e5e7eb;
+    line-height: 1.6;
+}
+
+/* Navbar */
+nav {
+    border-bottom: 1px solid #1f2933;
+    background: #0b0f1a;
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 22px;
+    font-weight: 700;
+    color: #6366f1;
+}
+
+.nav-links a {
+    margin-left: 20px;
+    color: #cbd5e1;
+    text-decoration: none;
+}
+
+.nav-links a:hover {
+    color: #6366f1;
+}
+
+/* Hero */
+.hero {
+    max-width: 1200px;
+    margin: auto;
+    padding: 100px 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 60px;
+}
+
+.hero h1 {
+    font-size: 42px;
+    font-weight: 800;
+}
+
+.hero h1 span {
+    color: #6366f1;
+}
+
+.hero p {
+    margin-top: 20px;
+    color: #94a3b8;
+}
+
+.hero-buttons {
+    margin-top: 30px;
+}
+
+.hero-buttons a {
+    display: inline-block;
+    margin-right: 15px;
+    padding: 12px 28px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: #6366f1;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: #4f46e5;
+}
+
+.btn-outline {
+    border: 1px solid #334155;
+    color: #cbd5e1;
+}
+
+.btn-outline:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+}
+
+/* Market Card */
+.market-card {
+    background: #111827;
+    border: 1px solid #1f2933;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.market-card table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.market-card th,
+.market-card td {
+    padding: 10px 0;
+    border-bottom: 1px solid #1f2933;
+    font-size: 14px;
+}
+
+.market-card th {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.green {
+    color: #22c55e;
+}
+
+.red {
+    color: #ef4444;
+}
+
+/* Features */
+.features {
+    background: #111827;
+    padding: 80px 20px;
+}
+
+.features-container {
+    max-width: 1200px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 40px;
+}
+
+.feature h3 {
+    margin-bottom: 10px;
+}
+
+.feature p {
+    color: #94a3b8;
+}
+
+/* Footer */
+footer {
+    border-top: 1px solid #1f2933;
+    text-align: center;
+    padding: 30px;
+    color: #64748b;
+}

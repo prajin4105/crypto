@@ -1,13 +1,34 @@
 <template>
   <nav class="nav">
-    <h1 class="logo">CryptoX</h1>
+    <div class="logo-section">
+      <div class="logo-icon">
+        <svg viewBox="0 0 32 32" width="28" height="28">
+          <circle cx="16" cy="16" r="14" fill="url(#coinGradient)" />
+          <text x="16" y="21" text-anchor="middle" fill="#0a0e1a" font-size="14" font-weight="bold">₿</text>
+          <defs>
+            <linearGradient id="coinGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fbbf24" />
+              <stop offset="100%" stop-color="#f59e0b" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <h1 class="logo">CryptoX</h1>
+    </div>
 
     <div class="links">
-      <router-link to="/" class="nav-link">Markets</router-link>
-      <router-link to="/" class="nav-link">Trade</router-link>
+      <router-link to="/" class="nav-link">
+        <span class="nav-icon">📊</span>
+        Markets
+      </router-link>
+      <router-link to="/orders" class="nav-link">
+        <span class="nav-icon">📋</span>
+        Orders
+      </router-link>
 
       <!-- Loading state -->
       <span v-if="loading" class="nav-link muted">
+        <span class="loading-spinner"></span>
         Checking…
       </span>
 
@@ -22,19 +43,49 @@
 
       <!-- Logged in - Show Balance -->
       <template v-else>
-        <div class="balance-section">
-          <div class="balance-label">Balance</div>
-          <div class="balance-value" :class="{ positive: liveBalance >= baseBalance, negative: liveBalance < baseBalance }">
-            ${{ formatBalance(liveBalance) }}
+        <div class="balance-container" @mouseenter="showDropdown = true" @mouseleave="showDropdown = false">
+          <div class="balance-section">
+            <div class="balance-header">
+              <div class="live-dot"></div>
+              <span class="balance-label">Portfolio</span>
+            </div>
+            <div class="balance-main">
+              <span class="balance-currency">$</span>
+              <span class="balance-value" :class="{ 'value-up': balanceDirection === 'up', 'value-down': balanceDirection === 'down' }">
+                {{ formatBalance(liveBalance) }}
+              </span>
+            </div>
+            <div v-if="unrealizedPL !== 0" class="unrealized-pl" :class="{ positive: unrealizedPL > 0, negative: unrealizedPL < 0 }">
+              <span class="pl-icon">{{ unrealizedPL > 0 ? '▲' : '▼' }}</span>
+              {{ unrealizedPL > 0 ? '+' : '' }}${{ formatBalance(Math.abs(unrealizedPL)) }}
+            </div>
           </div>
-          <div v-if="unrealizedPL !== 0" class="unrealized-pl" :class="{ positive: unrealizedPL > 0, negative: unrealizedPL < 0 }">
-            {{ unrealizedPL > 0 ? '+' : '' }}{{ formatBalance(unrealizedPL) }}
-          </div>
+          
+          <!-- Wallet Dropdown -->
+          <transition name="dropdown">
+            <div v-if="showDropdown && wallets.length > 0" class="wallet-dropdown">
+              <div class="dropdown-header">Your Assets</div>
+              <div v-for="wallet in wallets" :key="wallet.currency" class="wallet-row">
+                <div class="wallet-info">
+                  <span class="wallet-currency">{{ wallet.currency }}</span>
+                  <span class="wallet-available">Available: {{ formatBalance(wallet.available) }}</span>
+                </div>
+                <div class="wallet-values">
+                  <span class="wallet-balance">{{ formatBalance(wallet.balance) }}</span>
+                  <span v-if="wallet.locked_balance > 0" class="wallet-locked">
+                    🔒 {{ formatBalance(wallet.locked_balance) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </transition>
         </div>
+        
         <button
-          class="btn-login"
+          class="btn-logout"
           @click="logout"
         >
+          <span class="logout-icon">↪</span>
           Logout
         </button>
       </template>
@@ -55,16 +106,19 @@ export default {
       loading: true,
       baseBalance: 0,
       liveBalance: 0,
+      previousBalance: 0,
+      balanceDirection: null,
       unrealizedPL: 0,
       wallets: [],
       openOrders: [],
       priceSocket: null,
-      prices: {}, // Store current market prices
+      prices: {},
       balanceInterval: null,
       wsConnecting: false,
       wsReconnectTimeout: null,
       reconnectAttempts: 0,
       maxReconnectAttempts: 5,
+      showDropdown: false,
     }
   },
 
@@ -143,14 +197,10 @@ export default {
           const orderPrice = order.price
 
           if (order.type === 'buy') {
-            // For buy orders: unrealized gain = (current_price - order_price) * remaining
-            // This represents the potential gain if we could sell at current price
             const potentialValue = currentPrice * remaining
             const lockedValue = orderPrice * remaining
             unrealizedPL += (potentialValue - lockedValue)
           } else if (order.type === 'sell') {
-            // For sell orders: unrealized gain = (order_price - current_price) * remaining
-            // If current price is lower, we gain. If higher, we lose.
             const lockedValue = orderPrice * remaining
             const currentValue = currentPrice * remaining
             unrealizedPL += (lockedValue - currentValue)
@@ -159,7 +209,19 @@ export default {
       }
 
       this.unrealizedPL = unrealizedPL
-      this.liveBalance = this.baseBalance + unrealizedPL
+      const newBalance = this.baseBalance + unrealizedPL
+      
+      // Track balance direction for animation
+      if (this.liveBalance !== 0 && newBalance !== this.liveBalance) {
+        this.previousBalance = this.liveBalance
+        this.balanceDirection = newBalance > this.liveBalance ? 'up' : 'down'
+        // Reset direction after animation
+        setTimeout(() => {
+          this.balanceDirection = null
+        }, 600)
+      }
+      
+      this.liveBalance = newBalance
     },
 
     connectPriceWebSocket() {
@@ -433,45 +495,64 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 48px;
-  background-color: #0b0f1a;
-  border-bottom: 1px solid #1f2933;
+  padding: 16px 48px;
+  background: linear-gradient(180deg, #0d1220 0%, #0b0f1a 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+  z-index: 1000;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
 
 .logo {
-  font-size: 26px;
-  font-weight: 900;
-  color: #ffffff;
+  font-size: 24px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
 }
 
 .links {
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .nav-link {
-  padding: 10px 18px;
-  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  color: #94a3b8;
   text-decoration: none;
   font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .nav-link:hover {
   color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.btn-login {
-  margin-left: 16px;
-  padding: 10px 22px;
-  background: #ffffff;
-  color: #000;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-login:hover {
-  background: #e5e7eb;
+.nav-icon {
+  font-size: 16px;
 }
 
 .muted {
@@ -479,42 +560,162 @@ export default {
   cursor: default;
 }
 
+.loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.btn-login {
+  margin-left: 12px;
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+}
+
+.btn-login:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+  padding: 10px 20px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-logout:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.logout-icon {
+  font-size: 14px;
+}
+
+/* Balance Container */
+.balance-container {
+  position: relative;
+}
+
 .balance-section {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  margin-right: 20px;
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  min-width: 150px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 12px;
+  min-width: 180px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.balance-label {
-  font-size: 11px;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.balance-section:hover {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(59, 130, 246, 0.12) 100%);
+}
+
+.balance-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 4px;
 }
 
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: pulse-dot 2s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.9); }
+}
+
+.balance-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.balance-main {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.balance-currency {
+  font-size: 14px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
 .balance-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: #ffffff;
   font-variant-numeric: tabular-nums;
+  transition: all 0.3s ease;
 }
 
-.balance-value.positive {
+.balance-value.value-up {
   color: #22c55e;
+  animation: flash-up 0.6s ease;
 }
 
-.balance-value.negative {
+.balance-value.value-down {
   color: #ef4444;
+  animation: flash-down 0.6s ease;
+}
+
+@keyframes flash-up {
+  0% { background: rgba(34, 197, 94, 0.3); }
+  100% { background: transparent; }
+}
+
+@keyframes flash-down {
+  0% { background: rgba(239, 68, 68, 0.3); }
+  100% { background: transparent; }
 }
 
 .unrealized-pl {
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
   font-weight: 600;
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
@@ -526,5 +727,101 @@ export default {
 
 .unrealized-pl.negative {
   color: #ef4444;
+}
+
+.pl-icon {
+  font-size: 8px;
+}
+
+/* Wallet Dropdown */
+.wallet-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  min-width: 280px;
+  background: rgba(15, 20, 36, 0.98);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 1001;
+}
+
+.dropdown-header {
+  padding: 14px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.wallet-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s ease;
+}
+
+.wallet-row:last-child {
+  border-bottom: none;
+}
+
+.wallet-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.wallet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wallet-currency {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.wallet-available {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.wallet-values {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.wallet-balance {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-locked {
+  font-size: 11px;
+  color: #f59e0b;
+}
+
+/* Dropdown Animation */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>

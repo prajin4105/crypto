@@ -3,9 +3,12 @@
     <!-- HEADER -->
     <div class="top-header">
       <div class="coin-info">
-        <h1>{{ symbol.replace('USDT', '') }}</h1>
-        <span>/ USDT</span>
-        <span>LIVE</span>
+        <h1 class="coin-symbol">{{ symbol.replace('USDT', '') }}</h1>
+        <span class="trading-pair">/ USDT</span>
+        <div class="live-badge">
+          <span class="live-dot"></span>
+          <span class="live-text">LIVE</span>
+        </div>
       </div>
 
       <div class="price-section">
@@ -15,15 +18,17 @@
           </span>
           <span class="price-unit">USDT</span>
         </div>
-        <div class="price-change">
-          <span class="change-value" :class="{ positive: change >= 0, negative: change < 0 }">
-            {{ change !== null ? (change >= 0 ? '+' : '') + change.toFixed(2) + '%' : '—' }}
+        <div class="price-change" v-if="change !== null">
+          <span class="change-badge" :class="{ positive: change >= 0, negative: change < 0 }">
+            <span class="change-icon">{{ change >= 0 ? '▲' : '▼' }}</span>
+            {{ (change >= 0 ? '+' : '') + change.toFixed(2) }}%
           </span>
         </div>
       </div>
 
-      <div>
-        IST {{ currentTime }}
+      <div class="time-section">
+        <span class="time-label">IST</span>
+        <span class="time-value">{{ currentTime }}</span>
       </div>
     </div>
 
@@ -587,23 +592,23 @@ export default {
 
 <style scoped>
 .coin-page {
-  background: linear-gradient(135deg, #0a0e27 0%, #000000 100%);
+  background: linear-gradient(135deg, #0a0e1a 0%, #0d1220 100%);
   min-height: 100vh;
-  padding: 20px;
+  padding: 24px;
   color: #e5e7eb;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Top Header */
 .top-header {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 30px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  padding: 20px;
-  border: 1px solid #1a1f3a;
-  background: #0a0e1a;
+  padding: 20px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .coin-info {
@@ -612,53 +617,156 @@ export default {
   gap: 12px;
 }
 
-.coin-name {
+.coin-symbol {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 1px;
   margin: 0;
-  color: #ffffff;
+  background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .trading-pair {
   font-size: 18px;
-  color: #94a3b8;
+  color: #64748b;
   font-weight: 500;
 }
 
-.live-indicator {
+.live-badge {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 4px 10px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 6px;
+  margin-left: 12px;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: pulse-live 2s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.8); }
+}
+
+.live-text {
+  font-size: 10px;
+  font-weight: 700;
   color: #22c55e;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
-.coin-page {
-  background: #0b0f1a;
-  min-height: 100vh;
-  padding: 20px;
-  color: #e5e7eb;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+.price-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
-.top-header,
+.price-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.price-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
+}
+
+.price-value.positive {
+  color: #22c55e;
+}
+
+.price-value.negative {
+  color: #ef4444;
+}
+
+.price-unit {
+  font-size: 16px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.price-change {
+  display: flex;
+  align-items: center;
+}
+
+.change-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.change-badge.positive {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.change-badge.negative {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.change-icon {
+  font-size: 10px;
+}
+
+.time-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.time-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.time-value {
+  font-size: 14px;
+  color: #94a3b8;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Main Grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+}
+
 .chart-container,
 .orderbook-section,
 .trades-section,
 .trading-panel {
-  background: #0f1424;
-  border: 1px solid #1f2937;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-
-.main-grid {
-  display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
 }
 
 .price-section {
